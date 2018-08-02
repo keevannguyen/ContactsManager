@@ -27,27 +27,24 @@ app.use(bodyParser.json());
 
 
 // Paths
-app.get('/ping', function (req, res) {
- return res.send('pong');
-});
-
 app.get('/', function (req, res) {
   res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 
-app.get('/testing', function(req, res) {
-  res.json({text: 'HELLO THERE'});
-});
-
-app.get('/contacts', function(req, res) {
+app.get('/api/contacts', function(req, res) {
   Contact.find()
     .exec()
     .then( contacts => {
+      console.log("Successfully retrieved all contacts!");
       res.json({ contacts: contacts });
+    })
+    .catch( err => {
+      console.log(err);
+      res.status(404).end();
     });
 });
 
-app.post('/contact/create', function(req, res) {
+app.post('/api/contact/create', function(req, res) {
   new Contact({
     name: req.body.name,
     phone: req.body.phone,
@@ -60,16 +57,57 @@ app.post('/contact/create', function(req, res) {
   })
   .catch( err => {
     console.log(err);
-    res.status(404);
+    res.status(404).end();
   });
 })
 
-app.post('/contact/:id', function(req ,res) {
-
+app.get('/api/contact/:id', function(req ,res) {
+  Contact.findById(req.params.id)
+    .exec()
+    .then( contact => {
+      res.json({ contact: contact });
+    })
+    .catch( err => {
+      console.log(err);
+      res.status(404).end();
+    });
 });
 
-app.post('/contact/delete/:id', function(req, res) {
+app.post('/api/contact/:id', function(req ,res) {
+  Contact.findById(req.params.id)
+    .exec()
+    .then( contact => {
+      Object.assign(contact, {
+        name: req.body.name,
+        phone: req.body.phone,
+        birthday: new Date(req.body.birthday)
+      });
+      return contact.save();
+    })
+    .then( () => {
+      console.log("Successfully edited contact!");
+      res.end();
+    })
+    .catch( err => {
+      console.log(err);
+      res.status(404).end();
+    });
+});
 
+app.delete('/api/contact/delete/:id', function(req, res) {
+  Contact.findById(req.params.id)
+    .exec()
+    .then( contact => {
+      return contact.remove();
+    })
+    .then( () => {
+      console.log("Successfully deleted contact!");
+      res.end();
+    })
+    .catch( err => {
+      console.log(err);
+      res.status(404).end();
+    });
 });
 
 const port = process.env.PORT || 1337;
